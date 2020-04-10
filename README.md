@@ -5,9 +5,6 @@
 
 * Modernize a .NET Core Application to Azure App Service Environment, Azure Functions, and Azure SQL DB, and Azure DevOps
     * [POC Scenario Contoso Expenses: Deploying to App Service Environment](app-service-environment/ase-walkthrough.md)
-    
-* Internal business app on Service Fabric
-    * [POC Scenario Voting Application: Working with Service Fabric Services](service-fabric/articles/serivce-fabric.md)
 
 * Modernize Traditional Applications using Containers
    * [POC Scenario: Containerize ASP.NET Full Framework Application](containers/articles/aspnet-fullframework.md)
