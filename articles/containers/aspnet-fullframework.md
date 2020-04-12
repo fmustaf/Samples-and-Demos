@@ -13,25 +13,25 @@ In this walkthrough, we will go over the basic steps necessary to run an ASP.NET
 1. Make sure Docker for Windows is configured to run Windows Containers.
 2. In the Windows taskar, right-click the Docker for Windows Icon and select **Switch to Windows Containers**
 
-    ![Screenshot](images/aspnet-windows/aspnet-containers-01.png)
+    ![Screenshot](media/aspnet-windows/aspnet-containers-01.png)
 
     > Note: This may require additional components to be installed on your machine which will force a reboot.
 3. Once switched, open Visual Studio 2017. Create a new ASP.NET Web Application project.
     > Note: We want to ensure we select the full .NET Framework, not .NET Core.
     
-    ![Screenshot](images/aspnet-windows/aspnet-containers-02.png)
+    ![Screenshot](media/aspnet-windows/aspnet-containers-02.png)
 
 4. For the application template, select **MVC** and ensure that Authentication is set to **No Authentication**. Click **Ok**.
      
-    ![Screenshot](images/aspnet-windows/aspnet-containers-03.png)
+    ![Screenshot](media/aspnet-windows/aspnet-containers-03.png)
 
 5. Once the application is created, right-click the project and click **Publish**.
      
-    ![Screenshot](images/aspnet-windows/aspnet-containers-04.png)
+    ![Screenshot](media/aspnet-windows/aspnet-containers-04.png)
 
 6. Select **Folder** in the publish dialog. Keep a note of where the files are being published to. Click **Publish**.
      
-    ![Screenshot](images/aspnet-windows/aspnet-containers-05.png)
+    ![Screenshot](media/aspnet-windows/aspnet-containers-05.png)
 
     > Note: Pay attention to the folder path you are selecting here as this will be important in the next step. In this case, I am saving my site in a folder called **Site**.
 7. Open the folder that was just published in a text editor. In that folder, create a file called **Dockerfile**. Add the following contents to the Dockerfile
@@ -44,7 +44,7 @@ In this walkthrough, we will go over the basic steps necessary to run an ASP.NET
     ```
     > Note: This file should be at the same directory level of your **Site** folder as this is what will be used in the copy step.
      
-    ![Screenshot](images/aspnet-windows/aspnet-containers-06.png)
+    ![Screenshot](media/aspnet-windows/aspnet-containers-06.png)
 
 8. Open a command prompt to the same folder as the Dockerfile. Run the following command to build the Docker image
     ```cmd
@@ -71,10 +71,10 @@ In this walkthrough, we will go over the basic steps necessary to run an ASP.NET
     ```cmd
     docker build -t contoso/aspnet-site:1.0 --build-arg site_root=/ .
     ```
-10. Once the container is built, you can run `docker images`
+10. Once the container is built, you can run `docker media`
     and see that our new aspnet-site container is ready to go along with the base .NET 4.7.1 container we can use in the future.
    
-    ![Screenshot](images/aspnet-windows/aspnet-containers-07.png)
+    ![Screenshot](media/aspnet-windows/aspnet-containers-07.png)
 
 11. To run the container, type
     ```cmd
@@ -84,7 +84,7 @@ In this walkthrough, we will go over the basic steps necessary to run an ASP.NET
 12. Run `docker ps`
     to see the container running.
        
-    ![Screenshot](images/aspnet-windows/aspnet-containers-08.png)
+    ![Screenshot](media/aspnet-windows/aspnet-containers-08.png)
 
 13. You can get the IP being used by the container through running the following command:
     ```cmd
@@ -93,4 +93,4 @@ In this walkthrough, we will go over the basic steps necessary to run an ASP.NET
 
 14. We can open a brower to this url `http://{IPAddress}` and we should see the site running.
        
-    ![Screenshot](images/aspnet-windows/aspnet-containers-09.png)
+    ![Screenshot](media/aspnet-windows/aspnet-containers-09.png)
