@@ -6,13 +6,13 @@
 After completing this excerisize you will be able to:
 
 - Containerize the eShopOnWeb E-Commerce Application
-- Build and Push container images to Azure Container Registry
+- Build and Push container media/ecommerce-app to Azure Container Registry
 - Create Build and Release Definitions in Azure DevOps
 - Enable Continuous Integration and Delpoyment in Azure DevOps
 - Reference creating a AKS Cluster in Azure
 - Deploy the solution using Azure DevOps to AKS Cluster
 
-![Screenshot](images/eShopOnWeb-architecture.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-architecture.png)
 
 ## Pre-Requisites ##
 In order to complete this POC you will need:
@@ -35,7 +35,7 @@ az aks get-credentials --resource-group ft-akslinux-rg --name Fezk8sLinuxCluster
 
 ## Set up the Application Locally 
 * Check in the code for eWebShop in in Azure DevOps. You can create a separate branch other than the main branch. Below is an example:
-![Screenshot](images/eShopOnWeb-CodeinVSTS.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-CodeinVSTS.png)
 * Open eShop solution and walk through a few pieces of code
 * Notice that we added the Application Insights Nuget Package
 * Notice in Startup.cs ConfigureServices, this is where we add the kubernetes connection
@@ -52,7 +52,7 @@ az aks get-credentials --resource-group ft-akslinux-rg --name Fezk8sLinuxCluster
 
 * Run the application in Visual Studio locally. It will connect to Azure SQL and you can do some shopping on the site.
 
-![Screenshot](images/eShopOnWeb-RunAppLocally.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-RunAppLocally.png)
  
 * Create an AppInsights instance, to keep manageable, create it in the same Resource Group as the Managed AKS cluster. Note down the **Instrumentation Key**
 
@@ -63,41 +63,41 @@ az aks get-credentials --resource-group ft-akslinux-rg --name Fezk8sLinuxCluster
 * Go to Azure DevOps, create a new build
 * To set up build steps, you will add two Docker tasks and one for Publish Artifact (docker build, docker push, publish k8s files)
 * Your Completed build defintion with three tasks will look like this:
-![Screenshot](images/eShopOnWeb-CompletedBuildDef.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-CompletedBuildDef.png)
 * Create a new build definition, select continue, Empty Process, ensure to use Hosted Linux Preview for Agent Queue
 * **Build Image**. Search for Docker Task and add it.
-![Screenshot](images/eShopOnWeb-NewBuildDef.png)
-![Screenshot](images/eShopOnWeb-NewBuildProcess.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-NewBuildDef.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-NewBuildProcess.png)
 
-![Screenshot](images/eShopOnWeb-BuildDefTaskOnePart1.png)
-![Screenshot](images/eShopOnWeb-BuildDefTaskOnePart2.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-BuildDefTaskOnePart1.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-BuildDefTaskOnePart2.png)
 
 * **Push an Image**. Search for another Docker Task and add it.
-![Screenshot](images/eShopOnWeb-BuildDefTaskTwoPart1.png)
-![Screenshot](images/eShopOnWeb-BuildDefTaskTwoPart2.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-BuildDefTaskTwoPart1.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-BuildDefTaskTwoPart2.png)
 
 
 * Ensure Use Default Build Context is unchecked and leave the resulting text field blank!!
 * Ensure You have your own Subscription selected and Authenticated with that subscription. Enter the rest of the fields as shown, leave rest as is. 
 
 * Enable Continuous Integration under Triggers
-![Screenshot](images/eShopOnWeb-EnableContinuousIngBuildDef.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-EnableContinuousIngBuildDef.png)
  
 * Now search for Publish Artifact, and this task
-![Screenshot](images/eShopOnWeb-PublishArtifactDef.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-PublishArtifactDef.png)
 
 * **Kick off a build and let it finish**
 
 
 ## Set up Release Definition in Azure DevOps
 * Create a release definition and pipeline. Once completed your definition will be similar to the one as below:
-![Screenshot](images/eShopOnWeb-CompleteReleaseDefPipeline.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-CompleteReleaseDefPipeline.png)
 * Setup release steps (token replace, kubectl apply), use Empty Process
-![Screenshot](images/eShopOnWeb-CompleteReleaseDefPipeline.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-CompleteReleaseDefPipeline.png)
 * Create a new artifact and point to the build definition you created
-![Screenshot](images/eShopOnWeb-ReleaseDefTaskOne.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-ReleaseDefTaskOne.png)
 * Then create a new environment. The Environment Name used here is **AKS Cluster**.
-  ![Screenshot](images/eShopOnWeb-AddTasksToEnvironment.png)
+  ![Screenshot](media/ecommerce-app/eShopOnWeb-AddTasksToEnvironment.png)
   
 * Click on phase and tasks link for Environment. Add two tasks to your Environment
 
@@ -106,27 +106,27 @@ az aks get-credentials --resource-group ft-akslinux-rg --name Fezk8sLinuxCluster
   * Change Target Files: `**/*.yaml and **/*.yml`
 * Your Replace token should look similar to below. 
 > **Note**: Under Token Prefix and Token Suffix, this is a **double underscore**.
-![Screenshot](images/eShopOnWeb-ReplaceTokenTask.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-ReplaceTokenTask.png)
  
 * **For kubectl apply** - Search for kube, you want the Deploy To Kubernetes Task, name it **kubectl apply**
 * Your kubectl task  will look similar to below, replacing filled in values with yours where applicable.
-![Screenshot](images/eShopOnWeb-ReleaseBuildkubectlpasrt1.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-ReleaseBuildkubectlpasrt1.png)
 
 * You will be creating a New Kubernetes Service Connection. Click on **New**
   * Give this connection a Name
 * URL is the API server address from Azure portal, for the AKS Cluster, under Overview. **Append http://** in front. For example: http://apiserveraddressoftheclusterfromoverviewsection
   * Copy all the contents of the **config** file under C:\Users\yourusername\.kube\ in the KubeConfig section.
   * For Azure Subscription Section, ensure you have your own subscription selected
-  ![Screenshot](images/eShopOnWeb-NewKuberbnetesEndpoint.png)
+  ![Screenshot](media/ecommerce-app/eShopOnWeb-NewKuberbnetesEndpoint.png)
 
  > **Note**: This is where you set up connection to k8s cluster using the cluster config that you download by executing the get credentials command from Azure Portal. After running the get-credentials command, your **config** file is located: C:\Users\yourusername\.kube. Copy the contents of the config file to the KubeConfig field when setting up the new connection.
 
 * Continue to fill out the rest as shown below:
-![Screenshot](images/eShopOnWeb-ReleaseBuildkubectlpart2.png)
-![Screenshot](images/eShopOnWeb-ReleaseBuildkubectlpart3.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-ReleaseBuildkubectlpart2.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-ReleaseBuildkubectlpart3.png)
  
 * Add variables and their respective values
-![Screenshot](images/eShopOnWeb-ReleaseBuildVariables.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-ReleaseBuildVariables.png)
 
 AppInsightsKey **YourValue**
  
@@ -144,7 +144,7 @@ REPOSITORY **YourValue**
  "IdentityConnection": "Server=tcp:YOURDBSERVERNAME.database.windows.net,1433;Initial Catalog=IdentityDB;Persist Security Info=False;User ID=YOURUSERID;Password=YOURPASSWORD;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
 ````
 * Setup CD trigger
-![Screenshot](images/eShopOnWeb-EnableContinuousIngReleaseDef.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-EnableContinuousIngReleaseDef.png)
 
 * Save all the changes and **Deploy the Release build!**
 
@@ -154,13 +154,13 @@ from the k8s dashboard from the cluster overview blade in the Azure portal.
  az aks browse --resource-group yourresourcegroupname --name yourk8sclustername
  ````
 * K8s Dashboard will launch. Note, this may take a few minutes to initialize the first time around.
-![Screenshot](images/eShopOnWeb-WebsiteExternalEndpointk8s.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-WebsiteExternalEndpointk8s.png)
 
  * With a successful deploy you will be given an IP address to navigate to the site.
-![Screenshot](images/eShopOnWeb-K8sdashboardpostdeploy.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-K8sdashboardpostdeploy.png)
 
 * Your website is Completely Modernized to the Cloud, running .NET Core E-Commerce Application, using Azure DevOps, deployed to AKS Linux Cluster!!
-![Screenshot](images/eShopOnWeb-completelyModernizedDeployedToAKS.png)
+![Screenshot](media/ecommerce-app/eShopOnWeb-completelyModernizedDeployedToAKS.png)
 
 ##  Application Insights set up
 * Once the app is deployed click and add items to the basket, collect some telemetry. Telemetry Data will start flowing into the  Azure portal from k8s cluster!
@@ -175,7 +175,7 @@ from the k8s dashboard from the cluster overview blade in the Azure portal.
    * Group by: Cloud Role Instance
    * Server, select Server Response Time
  
- ![Screenshot](images/eShopOnWeb-ApplicationInsightsMetricsExplorer.png)
+ ![Screenshot](media/ecommerce-app/eShopOnWeb-ApplicationInsightsMetricsExplorer.png)
  
 ##  See the CI/CD Kick off a Build and Release
 * Make a change in the code (e.g. change “Login” to “Sign in” or something visible)
