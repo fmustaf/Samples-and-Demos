@@ -32,7 +32,7 @@ To complete this POC, you will need:
 
 3. In the results window, select **Azure Database for PostgreSQL** and then click **Create**.
 
-    ![Screenshot](images/node-container/node-01.png)
+    ![Screenshot](media/node-container/node-01.png)
 
 4. In the creation blade, provide the following values (you can substitute your own, but keep track of them):
     * Server Name: **postgrescontainerdemo**
@@ -41,7 +41,7 @@ To complete this POC, you will need:
     * Password: *{Provide a value}*
     * Pricing Tier: **Basic**
     
-    ![Screenshot](images/node-container/node-02.png)
+    ![Screenshot](media/node-container/node-02.png)
 
     Click **Create**.
     > Note: The provisioning can take up to 20 minutes.
@@ -54,7 +54,7 @@ While the database is being provisioned, we can start working with the source co
 
 3. In the command prompt, type the command `npm install`.
     
-    ![Screenshot](images/node-container/node-03.png)
+    ![Screenshot](media/node-container/node-03.png)
 
     > Note: Throughout this walkthrough, you can ignore errors and warnings about the use of Jade within the node application.
 
@@ -62,7 +62,7 @@ While the database is being provisioned, we can start working with the source co
 
 5. If you run `npm start` the application should attempt to start, however an error will be thrown because there is no connection to a PostgreSQL instance. If you attempt to navigate to the site, you will see the basic application page, but with arrows indicating it is loading. You can navigate using this URL: `http://localhost:3000`.
 
-    ![Screenshot](images/node-container/node-04.png)
+    ![Screenshot](media/node-container/node-04.png)
 
 
 ## Allow Client IP in Database Firewall
@@ -70,14 +70,14 @@ By now, the PostgreSQL database should be done provisioning. In order to allow o
 
 1. Open the PostgreSQL instance from the Azure portal and navigate to **Connection Security**.
     
-    ![Screenshot](images/node-container/node-05.png)
+    ![Screenshot](media/node-container/node-05.png)
 
 2. Under firewall rules, add a new rule with the following settings:
     * Rule Name: **All_IP_Addresses**
     * Start IP: **0.0.0.0**
     * End IP: **255.255.255.255**
     
-    ![Screenshot](images/node-container/node-06.png)
+    ![Screenshot](media/node-container/node-06.png)
 
     Click **Save**.
     > **Note**: this allows any IP anywhere in the world not be blocked by the PostgreSQL firewall. In a production environment, you would need to adjust these rules accordingly.
@@ -194,27 +194,27 @@ We will now start to look at hosting options for running our containers. In this
 
 3. In the results window, select **Ubuntu Server 16.04 LTS** and then click **Create**.
     
-    ![Screenshot](images/node-container/node-07.png)
+    ![Screenshot](media/node-container/node-07.png)
 
 4. In the **Basics** blade, provide a name for the VM, authentication options, and resource group for the VM. Click **Ok**.
     
-    ![Screenshot](images/node-container/node-08.png)
+    ![Screenshot](media/node-container/node-08.png)
 
 5. In the **Size** blade, select an appropriate VM size. Click **Select**.
     
-    ![Screenshot](images/node-container/node-09.png)
+    ![Screenshot](media/node-container/node-09.png)
 
 6. In the **Settings** blade, click **Network security group (firewall)** and then in **Create network security group**, select **Add an inbound rule**. Under **Service**, select the option for **HTTP** and click **Ok** to get back to the settings blade. Click **Ok** to move to the summary blade.
     
-    ![Screenshot](images/node-container/node-10.png)
+    ![Screenshot](media/node-container/node-10.png)
 
 7. On the **Summary** blade, click **Create**.
 
 8. Once the VM is provisioned, in the **Overview** pane, click the public IP address. In the **DNS name label** field, provide a public, globally unique name for your VM and then click **Save**.
     
-    ![Screenshot](images/node-container/node-11.png)
+    ![Screenshot](media/node-container/node-11.png)
     
-    ![Screenshot](images/node-container/node-12.png)
+    ![Screenshot](media/node-container/node-12.png)
 
 9. Once the DNS entry is updated, open your SSH client and connect to the VM you just created.
 
@@ -273,11 +273,11 @@ We will now start to look at hosting options for running our containers. In this
 
 18. Once the application is up, you can type the command `sudo docker-compose ps` to see the status of the different containers, in particular that the host container is exposed on port 80.
     
-    ![Screenshot](images/node-container/node-13.png)
+    ![Screenshot](media/node-container/node-13.png)
 
 19. Outside of the Linux VM, open a browser and go to the hostname of your VM e.g. **http://{Your_VM}.eastus.cloudapp.azure.com** and you should see the To-Do application running.
     
-    ![Screenshot](images/node-container/node-14.png)
+    ![Screenshot](media/node-container/node-14.png)
 
 ## Create Azure Web App
 If you would rather avoid having to spin up a dedicated VM for hosting your application, another option is to use the Web App for Containers solution. This will provide a PaaS environment where we can deploy and scale our app without having to worry about any of the underlying infrastructure.
@@ -288,11 +288,11 @@ If you would rather avoid having to spin up a dedicated VM for hosting your appl
 
 3. In the results window, select **Web App for Containers** and then click **Create**.
         
-    ![Screenshot](images/node-container/node-15.png)
+    ![Screenshot](media/node-container/node-15.png)
 
 4. In the create blade, provide values for the app name and the existing resource group we have been using. Click on the **App Service plan / location** and adjust the name and location you want the app service deployed to.
         
-    ![Screenshot](images/node-container/node-16.png)
+    ![Screenshot](media/node-container/node-16.png)
 
 5. In the **Configure container** blade, select:
     * Image Source: **Azure Container Registry**
@@ -300,7 +300,7 @@ If you would rather avoid having to spin up a dedicated VM for hosting your appl
     * Image: **node-todo**
     * Tag: **latest**
         
-    ![Screenshot](images/node-container/node-17.png)
+    ![Screenshot](media/node-container/node-17.png)
 
     Click **Ok**.
 
@@ -311,11 +311,11 @@ Once the application is deployed, you could navigate to the url you created and 
 
 1. Open the web application properties in the Azure portal.
 
-    ![Screenshot](images/node-container/node-18.png)
+    ![Screenshot](media/node-container/node-18.png)
 
 2. Navigate to the **Application settings** blade.
 
-    ![Screenshot](images/node-container/node-19.png)
+    ![Screenshot](media/node-container/node-19.png)
 
 3. In the **App settings** section, add the following settings and their corresponding values (replace with your values if they are different):
     * PGUSER: **demo@postgrescontainerdemo.postgres.database.azure.com**
@@ -323,12 +323,12 @@ Once the application is deployed, you could navigate to the url you created and 
     * PGDATABASE: **postgres**
     * PGSERVER: **postgrescontainerdemo.postgres.database.azure.com**
 
-    ![Screenshot](images/node-container/node-20.png)
+    ![Screenshot](media/node-container/node-20.png)
 
     Click **Save**.
 
 4. Once the settings have saved, go back and refresh the application in your browser and you should see an empty list of todos and from there you can add some examples.
 
-    ![Screenshot](images/node-container/node-21.png)
+    ![Screenshot](media/node-container/node-21.png)
 
     > Note: If the settings do not immediately take effect, e.g. the loading arrows keep spinning, you may have to restart the app service. This can be done from the **Overview** blade of the app settings.
