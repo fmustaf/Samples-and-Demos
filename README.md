@@ -1,6 +1,7 @@
 # Code Samples and Walk Throughs
 
 * Modernize a .NET Core Application to Azure App Services, Azure Functions, and Azure SQL DB
+    * [App Services Overview](articles/app-service/app-service.md)
     * [POC Scenario Contoso Expenses: Deploying Website on Azure PaaS](articles/app-service/app-service-net-core-poc.md)
 
 * Modernize a .NET Core Application to Azure App Service Environment, Azure Functions, and Azure SQL DB, and Azure DevOps
