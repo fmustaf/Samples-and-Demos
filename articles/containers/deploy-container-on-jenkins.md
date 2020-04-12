@@ -40,17 +40,17 @@ In this walkthrough we will look at building and deploying a NodeJS application 
 
 * Log into the [Jenkins dashboard](http://localhost:8080). From the Jenkins dropdown, select **Manage Jenkins** and then **Manage Plugins**
 
-    ![Screenshot](images/jenkins-node/manage-plugins.png)
+    ![Screenshot](media/jenkins-node/manage-plugins.png)
 
 * Select **Available** and then search for **NodeJS**. Click the checkbox to install the plugin and then click **Install without restart**.
 
-    ![Screenshot](images/jenkins-node/install-nodejs.png)
+    ![Screenshot](media/jenkins-node/install-nodejs.png)
 
 * Once the plugin is installed, from the Jenkins dropdown, select **Manage Jenkins** and then **Global Tool Configuration**.
 
 * In the **NodeJS** area, click **Add NodeJS**. Provide a name e.g. *nodeinstall* and leave all options the same. Click **Save**.
 
-    ![Screenshot](images/jenkins-node/configure-node.png)
+    ![Screenshot](media/jenkins-node/configure-node.png)
 
 ### Run Application On-Prem
 
@@ -68,7 +68,7 @@ In this walkthrough we will look at building and deploying a NodeJS application 
 
 * In the browser, navigate to http://localhost:3000 and you should see your app running with an icon indicating to **add an item**.
 
-    ![Screenshot](images/jenkins-node/localhost-app.png)
+    ![Screenshot](media/jenkins-node/localhost-app.png)
 
 * Add a couple of items to the list, set some as completed to validate the saving to the database.
 
@@ -183,34 +183,34 @@ In this walkthrough we will look at building and deploying a NodeJS application 
     * Click **Add my IP**
     * Disable **SSL Required**
 
-    ![Screenshot](images/jenkins-node/mysql-firewall.png)
+    ![Screenshot](media/jenkins-node/mysql-firewall.png)
 
     Click **Save**
 
 ### Configure Jenkins Build
 * Return to the Jenkins dashboard, click **create new jobs**.
 
-    ![Screenshot](images/jenkins-node/create-job.png)
+    ![Screenshot](media/jenkins-node/create-job.png)
 
 * Select **Freestyle project** and give it an appropriate name e.g. **NodeApp**. Click **Ok**.
 
-    ![Screenshot](images/jenkins-node/freestyle-project.png)
+    ![Screenshot](media/jenkins-node/freestyle-project.png)
 
 * In the **General** section, select **Github project** and provide the url to your Github URL: e.g. https://github.com/username/project.
 
-    ![Screenshot](images/jenkins-node/general-setup.png)
+    ![Screenshot](media/jenkins-node/general-setup.png)
 
 * In the **Source Control Management** section, select **Git** and put the full url of your git repository (including the .git path) e.g. https://github.com/username/project.git
 
-    ![Screenshot](images/jenkins-node/source-setup.png)
+    ![Screenshot](media/jenkins-node/source-setup.png)
 
 * In the **Build triggers** section, check **GitHub hook trigger for GITScm polling**.
 
-    ![Screenshot](images/jenkins-node/trigger-setup.png)
+    ![Screenshot](media/jenkins-node/trigger-setup.png)
 
 * In the **Build environment** section, check **Provide Node & npm bin/ folder to PATH** and select the node configuration created earlier.
 
-    ![Screenshot](images/jenkins-node/build-env-setup.png)
+    ![Screenshot](media/jenkins-node/build-env-setup.png)
 
 * In the **Build** section, click **add build step** and select **execute shell**
   * In the command section, add the following lines
@@ -220,7 +220,7 @@ In this walkthrough we will look at building and deploying a NodeJS application 
     npm run build
     ```
 
-    ![Screenshot](images/jenkins-node/build-setup.png)
+    ![Screenshot](media/jenkins-node/build-setup.png)
 
 * In the **Post-Build actions** section, click **add post build action** and select **Publish an Azure web app**
     * For Azure credentials, click **Add** then **Jenkins**. Change the type to **Azure Service Principal**. From the values saved earlier, fill these in:
@@ -232,11 +232,11 @@ In this walkthrough we will look at building and deploying a NodeJS application 
     * Click **Add**
     * Change the Azure credentials to the service principal just created
 
-    ![Screenshot](images/jenkins-node/publish-1.png)
+    ![Screenshot](media/jenkins-node/publish-1.png)
 
-    ![Screenshot](images/jenkins-node/publish-2.png)
+    ![Screenshot](media/jenkins-node/publish-2.png)
 
-    ![Screenshot](images/jenkins-node/publish-3.png)
+    ![Screenshot](media/jenkins-node/publish-3.png)
 
     * Under **App Configuration**, select the resource group you created in the script above e.g. *fta-node-app-rg* and the app name chosen e.g. *ftanodemysqlapp*.
 
@@ -252,9 +252,9 @@ In this walkthrough we will look at building and deploying a NodeJS application 
             * Click **Add**
         * Change the credentials dropdown to use the ones just added.
     
-    ![Screenshot](images/jenkins-node/publish-4.png)
+    ![Screenshot](media/jenkins-node/publish-4.png)
 
-    ![Screenshot](images/jenkins-node/publish-5.png)
+    ![Screenshot](media/jenkins-node/publish-5.png)
 
 * Click **Save**
 
@@ -267,7 +267,7 @@ In this walkthrough we will look at building and deploying a NodeJS application 
 
 * Once MySQL Workbench has been launched, click the new connection icon.
 
-    ![Screenshot](images/jenkins-node/new-connection.png)
+    ![Screenshot](media/jenkins-node/new-connection.png)
 
 * Fill out the connection information for the on-premise database:
     * Connection Name: **on-prem**
@@ -289,17 +289,17 @@ In this walkthrough we will look at building and deploying a NodeJS application 
         * Click **Ok**
     * Click **Test Connection** to validate and then say **Ok**.
 
-    ![Screenshot](images/jenkins-node/mysql-azure.png)
+    ![Screenshot](media/jenkins-node/mysql-azure.png)
 
 * In MySQL Workbench click **Database** and then **Migration Wizard**.
     * On the overview screen, click **Start Migration**.
     * In the **Source Selection** screen, in the **Stored Connection** box, select **on-prem**. Click **Next**.
     
-    ![Screenshot](images/jenkins-node/select-onprem.png)
+    ![Screenshot](media/jenkins-node/select-onprem.png)
     
     * In the **Target Selection** screen, in the **Stored Connection** box, select **Azure**. Click **Next**.
     
-    ![Screenshot](images/jenkins-node/select-azure.png)
+    ![Screenshot](media/jenkins-node/select-azure.png)
     
     * Once the fetch schema list operation completes, click **Next**.
     * In the **Schemas Selection** screen, choose the **todos** schema and click **Next**.
