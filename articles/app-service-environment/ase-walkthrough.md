@@ -1,164 +1,472 @@
-# App Services
+# POC Scenario Contoso Expenses: Deploying to App Service Environment
+
+## Table Of Contents
+
+- [Introduction](#introduction)
+- [Learning Objectives](#learning-objectives)
+- [Prerequisites](#prerequisites)
+- [Deploy App Service Environment](#deploy-app-service-environment)
+    + [Create Virtual Network](#create-virtual-network)
+    + [Create App Service Environment](#create-app-service-environment)
+    + [Create ILB Certificate](#create-ilb-certificate)
+- [Deploy Web Apps](#deploy-web-apps)
+    + [Create Web Apps](#create-web-apps)
+    + [Create SQL Database](#create-sql-database)
+    + [Create Storage Account](#create-storage-account)
+    + [Configure Web App](#configure-web-app)
+- [Deploy Agent VM](#deploy-agent-vm)
+    + [Create Agent VM](#create-agent-vm)
+    + [Provide DNS Resolution](#provide-dns-resolution)
+    + [Test Web App](#test-web-app)
+- [Deploy App Gateway](#deploy-app-gateway)
+    + [Create App Gateway](#create-app-gateway)
+    + [Configure App Gateway](#configure-app-gateway)
+- [Setup CI/CD](#setup-ci/cd)
+    + [Initial Project Creation](#initial-project-creation)
+    + [Create Build Agent](#create-build-agent)
+    + [Setup Build](#setup-build)
+    + [Setup Release](#setup-release)
 
 ## Introduction
+The goal of this POC is to deploy an internal line of business application in your intranet environment using Azure App Service Environment service and securely connect to Azure SQL DB over VNet service endpoint. We will work with provisioning an ILB ASE in this POC. Then optionally you can expose this application to internet in a secure manner using Azure Application Gateway service which includes Web Application Firewall. Following that you can optionally setup continuous integration & continuous deployment using VSTS to automate build & release of an application.
 
-When it comes to Azure PaaS there are many different ways to build & deploy applications on Azure. Azure App Services, Service Fabric, Azure Functions, Azure Container Service, etc.
+![Architecture](media/ilb-ase-with-architecture.png)
 
-App Services are a High productivity & Fully Managed [Platform-as-a-Service](paas-overview.md) offering in Azure.
+## Learning Objectives
+After completing this exercise, you will be able to:
+* Create Azure App Service Environment and deploy a web app on to it
+* Create an Azure SQL Database and deploy a database
 
-### Benefits
+* Deploy Azure App Gateway and expose your intranet app to internet
+* Setup Continuous Integration & Continuous Deployment pipelines using VSTS to automate build & release of an application
 
-* **AAD Integration**: App Services support Azure Active Directory authentication which integrates with on-premises Active Directory and provides support for OAuth, OpenID connect, and SAML.
+## Prerequisites
 
-* **Global data center footprint**: App Services are deployed in all Azure regions worldwide so apps can sit close to where end users may be.
+* A Microsoft Azure subscription (with Contributor/Owner access)
 
-* **Hybrid Support**: Applications may have parts that continue to exist on-premise such as databases or ERP systems. App Services supports multiple hybrid connectivity options like VNET Integration, Hybrid Connections, or running in an App Service Environment.
+* Have downloaded the [Contoso Expenses](https://fasttrackforazure.blob.core.windows.net/sourcecode/Contoso.Expenses.zip) source code.
 
-* **Secure + Compliant**: App Services are compliant across a number of industry standards such as: ISO, SOC, PCI DSS, HITRUST, HIPPA, FedRAMP, etc.
+* Have an account on Visual Studio Team Services with permissions to create a project, create an agent pool, modify source code, and create build and release definitions.
 
-* **High Availability with auto-patching**: App Services as a managed service are maintained and patched for you. 
+## Deploy App Service Environment
 
-* **Auto Scale and load balancing**: App Services has built in auto scale and load balancing.
+#### Create Virtual Network
 
-* **Staging and deployment**:  App Services enables the use of deployment slots. A common question is when a new version of an applications is ready to go to production how does that get rolled out and if needed, switch back to a known good version if something goes wrong. Deployment slots allow developers to create new version of code in a staging slot and pushing code 20 or 30 times a day, without impacting a production deployment. Once ready, the slot can be swapped to production. 
+* Open the Azure Portal and [create a new Resource Group](https://docs.microsoft.com/en-us/azure/azure-resource-manager/resource-group-portal#manage-resource-groups) to hold all Azure resources related to this scenario.
+* Use the Azure portal to [create a virtual network](https://docs.microsoft.com/en-us/azure/virtual-network/quick-create-portal)
+  * In the marketplace search blade, type **Virtual Network**.
+  * Select the **Virtual network** entry in the search results and then click **Create**.
+  * In the **Create virtual network** blade fill in the values as shown below, including the default `cicd-snet` subnet with address range `10.0.1.0/24` (to hold our CI/CD agent VM) and then click **Create**.
+    > Note: We will want to leave a space in our VNet for the subnet holding the App Service Environment that we will create later.
 
-* **Testing in Production**: With the use of deployment slots, a percentage of random production traffic to staging slots to make sure everything works as expected to provide an additional level of validation before pushing to production.
+    ![Create VNet](media/vnet-create.png)
+* Once the VNet has been provisioned, open the VNet from the portal again, and click **Subnets**.
+* We will need to add a new subnet for the App Gateway. Click **+ Subnet** and provide the name `appgateway-snet` and address range `10.0.2.0/24` for the subnet.
 
-https://azure.microsoft.com/en-us/services/app-service/web/
+![Define Subnets](media/vnet-subnets.png)
 
-https://docs.microsoft.com/en-us/azure/app-service/web-sites-integrate-with-vnet
+#### Create App Service Environment
 
-https://docs.microsoft.com/en-us/Azure/azure-monitor/platform/autoscale-get-started?toc=%2fazure%2fapp-service%2ftoc.json
+* [Create an App Service Environment](https://docs.microsoft.com/en-us/azure/app-service/environment/create-ilb-ase#create-an-ilb-ase) (note that this can take up an hour or more)
+  * Select the VNet you created earlier (do not let the ASE deployment create its own VNet as this gives you far less control over the network configuration)
+  * Deploy the ASE into a new subnet called `web-snet` with address range `10.0.0.0/24`
+  * Set the **VIP Type** to `Internal` to create an Internal Load Balancer (ILB) in front of the ASE
+  * Set the **Domain** to `internal.contoso.com`
 
-https://docs.microsoft.com/en-us/azure/app-service/deploy-staging-slots
+![Create ASE](media/ase-create.png)
 
-> **NOTES**
-App Services are not VMs that can be domain-joined so legacy authentication in an application may have to be adjusted to support modern auth implementations.
+> Note: when the ASE is provisioned it creates a Network Security Group (NSG) preconfigured with all the ports it needs to function fully. However, it does not attach the NSG to the subnet that the ASE is deployed to. You currently have to go back and manually attach the NSG to the subnet otherwise, when the application is deployed you will not be able to have the web app talk to the API app.
 
-> **GUIDE** [Create an ASP.NET Core web app in Azure](https://docs.microsoft.com/en-us/azure/app-service/app-service-web-get-started-dotnet)
+* On the NSG that was created, open the **Subnets** blade and **Associate** it with the `web-snet` of the ASE.
 
-> **GUIDE** [Upload and bind SSL certificates to App Services](https://docs.microsoft.com/en-us/azure/app-service/app-service-web-tutorial-custom-ssl)
+#### Create ILB Certificate
 
-> **GUIDE** [Map an existing custom DNS name to App Services](https://docs.microsoft.com/en-us/azure/app-service/app-service-web-tutorial-custom-domain)
+* The ASE does not currently have a certificate for the Internal Load Balancer (ILB) yet, which means an SSL connection to any Web App on the ASE will not be valid
+* There are many ways to obtain a valid SSL certificate for the domain, but in this walkthrough we'll [create and configure a self-signed certificate](https://docs.microsoft.com/en-us/azure/app-service/environment/create-ilb-ase#post-ilb-ase-creation-validation) in PowerShell as follows (make sure to run PowerShell as an administrator):
 
-## App Service Plans
+````POWERSHELL
+$certificate = New-SelfSignedCertificate -certstorelocation cert:\localmachine\my -dnsname "*.internal.contoso.com","*.scm.internal.contoso.com"  
+$certThumbprint = "cert:\localMachine\my\" + $certificate.Thumbprint  
+$password = ConvertTo-SecureString -String "Test123!" -Force -AsPlainText  
+Export-PfxCertificate -cert $certThumbprint -FilePath "exportedcert.pfx" -Password $password
+Export-Certificate -cert $certThumbprint -FilePath "exportedcert-public.cer"
+````
+
+* Import the `exportedcert.pfx` certificate (which contains the private key) in to ASE
+  * In the Portal, navigate to the ASE and open the **ILB Certificate** blade
+  * Click **Update ILB certificate** to upload the pfx file (using the same password as in the PowerShell script above)
+  * While the certificate is updating, you will see a "Scale Operation In Progress" message in the ASE overview blade
+  ![Importing Certificate](media/importcertificate.png)
+  * It takes a while (possibly an hour or more) to update the ASE with the new cert, so if you would browse to a web app during that time you might still get a certificate mismatch warning
+  * Even after the cert goes in to effect, you will still get a Cert Authority (CA Root) warning from the browser, as this is a self-signed cert. If you want to avoid the warning, import the `exportedcert-public.cer` certificate to the Computer account under the **Trusted Root Certification Authorities** folder.
+
+## Deploy Web Apps
+
+#### Create Web Apps
+
+* Using the Azure Portal, [create a new ASE based Web App](https://docs.microsoft.com/en-us/azure/app-service/environment/create-ilb-ase#create-an-app-in-an-ilb-ase) called `expenseweb`
+  * For the App Service Plan, create a new one called `expenseweb-plan`, with the location set to the ASE and the pricing tier to `I1 Isolated`
+
+  ![Create Web App](media/webapp-create.png)
+
+  * When it is created, the Web App has a URL of `https://expenseweb.internal.contoso.com` which can't be accessed from the public internet as it is locked down inside the VNet (i.e. it's an intranet app)
+* Follow the same steps to create another Web App called `expenseapi`.
+
+#### Create SQL Database
+
+* Using the Azure Portal, [create a new SQL Database](https://docs.microsoft.com/en-us/azure/sql-database/sql-database-get-started-portal#create-a-sql-database)
+  * Open the Azure Portal and click to create a new resource.
+  * In the marketplace search blade, type **sql**.
+  * Select the **SQL Database** entry in the search results and then click **Create**.
+  * In the creation blade, set the database name as **contosoexpensesdb**.
+  * In the server configuration, create a new server. Provide a server name and admin credentials. Write this information down for future use. Once done, click **Select**.
+  * Under the pricing tier, change the tier to **Basic**. Click **Apply** and finally click **Create** to create the database.
+  ![Create Web App](media/sql-create.png)
+* Once the database has been provisioned, open the database server in the Azure Portal.
+* Select the **Firewalls and virtual networks** setting. Turn **Off** the **Allow access to Azure services** setting (since we are accessing it only directly from within the VNet)
+* In the **Virtual networks** area, click **Add existing virtual network**. Give the rule a name such as **buildAgentToSQLVnetRule**, provide the subscription, virtual network, and your CI/CD subnet `cicd-snet`. Click **Ok**.
+    > Note: If a service endpoint has not been enabled for your subnet, you can use this time to enable it.
+* Repeat the previous step to add another virtual network connection to your ASE subnet `web-snet`.
+* Once done, click **Save** to keep your changes.
+![SQL Server Firewall](media/sql-firewall.png)
+
+#### Create Storage Account
+
+* Using the Azure Portal, [create a new Storage Account](https://docs.microsoft.com/en-us/azure/storage/common/storage-quickstart-create-account?tabs=portal#create-a-general-purpose-storage-account)
+  * Open the Azure Portal and click to create a new resource.
+  * In the marketplace search blade, type **storage**.
+  * Select the **Storage account - blob, file, table, queue** entry in the search results and then click **Create**.
+  * Set the following values of the storage account:
+    * **Name**: **{Provide a unique name for the account}**
+    * **Account kind**: **StorageV2**
+    * **Configure virtual networks**: **Enabled**
+        * **Virtual network**: **{VNet being used for this walkthrough}**
+        * **Subnets**: **{Subnet holding the ASE setup}**
+
+    ![Storage Account Create](media/storage-create.png)
+  * Click **Create** which will build the storage account and provide connections to it from the apps we are building.
+    > Note: If you want to be able to browse the contents of the storage account from another computer (including through the Azure Portal) you will need to add an additional subnet to the network configuration or provide individual client IPs.
+* Once the storage account has been provisioned, open it up in the Azure portal. Click on the **Access keys** tab.
+* Copy the **Connection string** for **key1** and save it for later.
+
+#### Configure Web App
+
+* In the Azure portal, open the `expenseweb` application and then click on **Application settings**.
+* Under **Application settings**, add the following fields:
+    * **EmployeeName**: **Randy**
+    * **EmployeeApiUri**: **https://expenseapi.internal.contoso.com**
+    * **StorageConnectionString**: **{Connection string for the storage account created earlier}**
+* Under **Connection strings** create a new entry with the name **ContosoExpensesDataEntities**. Change the dropdown for type from **SQLAzure** to **Custom** and replace the placeholder values below with settings from your Azure SQL instance:
+
+```
+metadata=res://*/Models.ContosoExpensesModel.csdl|res://*/Models.ContosoExpensesModel.ssdl|res://*/Models.ContosoExpensesModel.msl;provider=System.Data.SqlClient;provider connection string="data source=tcp:__YOUR_SQL_SERVER__.database.windows.net;initial catalog=__YOUR_DB_NAME__;Integrated Security=False;User Id=__YOUR_SQL_USER_ID__;Password=__YOUR_SQL_USER_PASSWORD__;MultipleActiveResultSets=True;App=EntityFramework"
+```
+
+* Save the changes to your web app.
+
+## Deploy Agent VM
+
+> This part of the walkthrough will create a Virtual Machine inside the CI/CD subnet that we can use for testing. This VM will later be used to run a VSTS Agent that will build and release our application to our App Service Environment. Since the ASE is not publically exposed to the internet and therefore unreachable from VSTS, we will need an agent running inside the VNet that is hosting the application.
+
+#### Create Agent VM
+
+* We will start with [creating a virtual machine](https://docs.microsoft.com/en-us/azure/virtual-machines/windows/quick-create-portal#create-virtual-machine) that will run the build agent.
+  * In the Azure Portal, create a new resource.
+  * In the marketplace search blade, type **visual studio**.
+  * Select the **Visual Studio Enterprise 2017 (latest release) on Windows Server 2016 (x64)** entry in the search results and then click **Create**.
+  * In the **Basics** blade, provide the details for the VM. Click **Ok**.
+  ![Agent VM Basics](media/agentvm-create-basics.png)
+  * Select a size e.g. `D2_V3` for the VM and click **Select**.
+  * In the **Settings** blade, the options we want to make sure are the networking settings. We want the VM to be placed in the `cicd-snet` we created earlier. We will also want to remove the network security group for the VM (we will create one for the subnet next). Click **Ok**.
+  ![Agent VM Settings](media/agentvm-create-settings.png)
+  * In the **Summary** blade, click **Create**.
+* Next we need to [create a Network Security Group]() to allow RDP access
+  * In the Azure portal, click to create a new resource.
+  * In the marketplace search blade, type **network security group**.
+  * Select **Network security group** and click **Create**.
+  * Provide a name for the NSG e.g. `cicd-snet-nsg` and place it in the same resource group.
+* Once the NSG is created, open its settings in the portal to allow RDP access.
+  * Click on **Subnets** and then click **Associate**.
+  * Choose the VNet we created and then select the `cicd-snet` subnet we placed our VM into. Click **Ok**.
+  * Click on **Inbound security rules** and then click **Add**.
+  * Click on **Basic** and then in the **Service** field, choose `RDP`. Click **Ok**.
+* Finally, we need to [connect to the VM](https://docs.microsoft.com/en-us/azure/virtual-machines/windows/quick-create-portal#connect-to-virtual-machine) and configure it
+  * Once the VM has been provisioned, navigate to the **Overview** settings for it from the Azure portal. Click **Connect**.
+  * In Server Manager click **Local Server** and ensure the **IE Enhanced Security Configuration** is set to **Off** for administrators. Close Server Manager.
+
+#### Provide DNS Resolution
+
+> The Agent VM is not configured with any DNS service that is aware of the ASE so we will need to provide DNS resolution of the internal Web Apps and their Kudu sites to the IP address of the ASE's Internal Load Balancer (ILB).
+
+There are a number of options to provide DNS resolution:
+
+* The simplest solution for this scenario is to adjust the hosts file on the Agent VM to explicity configure the IP address for the Web Apps
+  * In the Azure Portal, navigate to the ASE and open the **IP addresses** blade
+  * Copy the **Internal Load Balancer IP address** (e.g. `10.0.0.11`) to the clipboard
+  * On the Agent VM, start a Notepad instance as administrator and open the system's host file at `C:\Windows\System32\drivers\etc\hosts`
+  * Add an entry for the ILB that serves the Web and API apps, and in both cases also for their Kudu sites. You should have something similar to the following:
+    ```
+    10.0.0.11	expenseweb.internal.contoso.com
+    10.0.0.11	expenseweb.scm.internal.contoso.com
+    10.0.0.11	expenseapi.internal.contoso.com
+    10.0.0.11	expenseapi.scm.internal.contoso.com
+    ```
+  * Save the hosts file
+* Alternatively, you can host a custom DNS server (e.g. a VM running Windows Server with the DNS Server Role) and [configure that custom DNS server on the VNet](https://docs.microsoft.com/en-us/azure/virtual-network/virtual-networks-name-resolution-for-vms-and-role-instances#specify-dns-servers)
+* You can also consider using [Azure DNS for private domains](https://docs.microsoft.com/en-us/azure/dns/private-dns-overview)
+  * See [Get started with Azure DNS private zones using PowerShell](https://docs.microsoft.com/en-us/azure/dns/private-dns-getstarted-powershell) for details on how to set this up
+  * Note that at the time of writing (May 2018) this feature is still in **preview**
+  * One limitation in the current preview is that you cannot start using private DNS zones when there are already resources in the VNet (like the Agent VM we already have deployed):
+    ```
+    New-AzureRmDnsZone : Virtual networks that are non-empty (have Virtual Machines or other resources) are not allowed during association with a private zone.
+    ```
+
+#### Test Web App
+
+* From inside the Agent VM, browse to http://expenseweb.internal.contoso.com, which should now show you a default "Your App Service app is up and running" page.
+* Now browse to https://expenseweb.internal.contoso.com (note the `https` connection), which should give you a warning that "There is a problem with this website's security certificate".
+* Continue to the site so you can again see the "Your App Service app is up and running" page.
+* View the certificate and verify that it was issued to `*.internal.contoso.com` (which is the ILB certificate).
+  * Note: if the certificate is issued to `*.ftasedemo-ase.p.azurewebsites.net`, this means that the ILB certificate deployment has not yet completed (and since the cert doesn't match the domain, we get the error in the browser). Wait for the Scale Operation on the ASE to complete before continuing.
+* Since this is a self-signed certificate, the Agent VM doesn't trust it yet.
+![Web App Certificate Error](media/webapp-certerror.png)
+* Copy the `exportedcert-public.cer` file (which contains only the public key) from the computer where the self-signed certificate was created into the Agent VM.
+* Import the `exportedcert-public.cer` certificate to the Computer account under the **Trusted Root Certification Authorities** folder.
+  * Double-click the .cer file, click **Install Certificate...**, select **Local Machine**, select the **Trusted Root Certification Authorities** store.
+* Close the browser and navigate back to https://expenseweb.internal.contoso.com, which should now work without any warnings.
+* Navigate to the Kudu site at https://expenseweb.scm.internal.contoso.com (note the `.scm` subdomain), you should get prompted for credentials to access the site.
+* The deployment credentials are the same for all web apps on the ASE. If you haven't set up [App Service Deployment Credentials](https://docs.microsoft.com/en-us/azure/app-service/app-service-deployment-credentials#userscope) yet, go to the Web App in the Azure Portal, select **Deployment credentials** and enter a username and password.
+* After successful authentication, you should now see the Kudu site for your Web App.
+
+## Deploy App Gateway
+
+#### Create App Gateway
+
+* Use the Azure portal to create a new [Application Gateway](https://docs.microsoft.com/en-us/azure/application-gateway/quick-create-portal#create-an-application-gateway).
+* In the marketplace search blade, type **Application Gateway**.
+* Select the Application Gateway entry in the search results and then click **Create**.
+* In the Basics blade, fill in the values as shown below and then click **OK**.
+![App Gateway Creation](media/appgw-create.png)
+
+* In the Settings blade select the VNet and subnet from earlier
+* Under Frontend IP configuration select public
+* Select Create new for the Public IP address
+* Click OK and begin creation of the gateway
+![App Gateway Creation](media/appgw-create-settings.png)
+
+#### Configure App Gateway
+
+* There are a number of components in the App Gateway that need to be configured; see the following diagram for an overview:
+![App Gateway Components](media/appgw-components.png)
+* Once the gateway is provisioned, navigate to the gateway in the portal
+* Select `appGatewayBackendPool` after navigating to Settings / Backend Pools
+* Enter the internal IP Address of the ILB ASE (e.g. `10.0.0.11`) and save.
+![App Gateway Creation](media/appgw-backend-pool.png)
+
+* Add a Multi-site listener under Settings / Listeners
+* Fill in the values as shown below and click ok
+![App Gateway multi-site listener](media/appgw-listener-multisite.png)
+
+* Update the Rule under Settings / Rules to use the new listener
+ ![App Gateway rule](media/appgw-rule.png)* Return to Settings / Listeners and delete `appGatewayHttpListener`
+ ![App Gateway rule](media/appgw-delete-listener.png)
+* Add a new probe under Settings / Health Probes
+* Fill in the values as shown below and click ok
+ ![App Gateway rule](media/appgw-probe.png)
+* Update `appGatewayBackendHttpSettings` under Settings / Http settings to use the newly created probe
+  ![App Gateway rule](media/appgw-httpsetting-probe.png)
+
+#### Configure DNS to access the webapp using the gateway
+
+* Navigate to the Overview tab and copy the IP part of the `Frontend public IP address` field.
+* Create an entry for `expenseweb.internal.contoso.com` in your local hosts file that points to the App Gateway IP address you just copied.
+* At this point, you should be able to visit the webapp on your local computer.
+* If you are using an internet routable domain in this demo
+  * Replace `expenseweb.internal.contoso.com` with your domain name in the Health probe and listener.
+  * Add your domain as a custom domain in the webapp
+  * There is no need to create the hosts entry at this point
 
-### Plans
 
-In App Service, an app runs in an App Service plan which is a set of compute resources for a Web app or API App to run. An app service plan can run one or more apps but an app can only be associated with a single app service plan.
+## Setup CI/CD
 
-When an app service plan is created, a set of compute resources is allocated for that plan in that region. Whatever apps are placed in that plan share the same underlying compute resources.
+> In this part of the guide we will be creating a project in VSTS, adding source code to the project, creating a build agent, and then setting up a CI / CD build and release pipelines.
 
-Each App Service plan defines:
-* Region (West US, East US, West Europe, etc.)
-* Number of VM instances
-* Size of VM instances (Small, Medium, Large)
-* [Pricing tier](#pricing) (Free, Shared, Basic, Standard, Premium, PremiumV2, Isolated, Consumption)
+#### Initial Project Creation
 
-> **NOTES**
-In terms of scaling app services and an application that may have a web front end and an API, a best practice is to host your Web app and API app in two different plans so they can be scaled them independently of each other.
+* Navigate to your VSTS account.
+* Click **New Project**. Provide a project name e.g. FTA-ASEExpenses, leave version control as Git and click **Create**.
 
-https://docs.microsoft.com/en-us/azure/app-service/overview-hosting-plans
+  ![Create VSTS Project](media/vsts-create.png)
 
+* Once the project is created, navigate to the **Code** hub. Since the repository is empty, we will need to load our Contoso Expenses source code in place. In the initialize section, click the dropdown for *add a .gitignore* and select **VisualStudio**. Click **Initialize**. Finally, click **Clone in Visual Studio**.
 
-### Pricing
+  ![Create code repository](media/vsts-create-repo.png)
 
-App service plans have 6 pricing tiers: Free, Shared, Basic, Standard, Premium, and Isolated.
+* Once Visual Studio opens, select the local path that you want the repository cloned to and then click **Clone**.
+* Once the repository has been cloned to your computer, open that folder in Windows Explorer and copy the contents of the Contoso Expenses application the cloned folder.
+* Open Team Explorer and click **Changes**. Type in a commit message, and then select **Commit All and Sync**.
+* Refresh the code hub in VSTS and you should see your source files.
 
-Standard and Premium plans are for production workloads and run on dedicated Virtual Machine instances behind the scenes
+  ![Code in repository](media/vsts-code.png)
 
-Each tier can support multiple applications and domains. The Isolated plan hosts apps in a private, dedicated Azure environment and is ideal for apps that require secure connections with your on-premises network. The isolated instances are meant to run in an App Service Environment.
 
-The numbers of apps that can be hosted, the disk space, and the number of instances it supports changes depending on the size of the plan.
+#### Create Build Agent
 
-> **NOTES** All tiers except Free and Shared tiers support a 99.95% SLA
+* From the previously built virtual machine, follow the steps to [create a personal access token](https://docs.microsoft.com/en-us/vsts/git/_shared/personal-access-tokens?view=vsts). Keep this token as you will not be able to retrieve it again.
+* In the VSTS settings, select **Agent Pools**. Click **New pool** and give it the name **ASE Internal** and click **Ok**.
 
-https://azure.microsoft.com/en-us/pricing/details/app-service/windows/
+  ![Agent pool settings](media/vsts-agent-pools.png)
 
+  ![Agent pool creation](media/vsts-create-pool.png)
 
-## Publishing Methods
+* Click **Download agent**. In the dialog that pops up, click **Download** and save it in your downloads folder.
 
-There are multiple ways to deploy to App Services.
+  ![Download agent](media/vsts-download-agent.png)
 
-* [Zip / WAR](https://docs.microsoft.com/en-us/azure/app-service/deploy-zip)
-* [FTP](https://docs.microsoft.com/en-us/azure/app-service/deploy-ftp)
-* [Dropbox / OneDrive](https://docs.microsoft.com/en-us/azure/app-service/deploy-content-sync)
-* [CI / CD](https://docs.microsoft.com/en-us/azure/app-service/deploy-continuous-deployment)
-* [Local Git](https://docs.microsoft.com/en-us/azure/app-service/deploy-local-git)
-* [From a template](https://docs.microsoft.com/en-us/azure/app-service/deploy-complex-application-predictably)
+  ![Download agent](media/vsts-agent-dialog.png)
 
-## Deployment Slots
+* Open a PowerShell prompt, navigate to your C:\ directory and then type the commands shown in the dialog into PowerShell e.g.
 
-Deployment slots allow staging of code to test and validate before pushing to production via a slot-swap. Not all settings are going to be swapped between slots, as such planning needs to happen if any of these settings are vital for the different staging environments.
+```powershell
+cd c:\
+mkdir agent ; cd agent
+Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$HOME\Downloads\vsts-agent-win-x64-<current-version>.zip", "$PWD")
+.\config.cmd
+```
+  ![Extract agent](media/vsts-extract-agent.png)
 
-| Swapped Settings | Non-Swapped Settings |
-| - | - |
-| General settings (framework version, 32/64 bit, web sockets) | Publishing endpoints |
-| App settings | Custom domain names |
-| Connection strings | SSL certificates |
-| Handler mappings | Scale settings
-| Monitoring and diagnostics | Web jobs schedulers |
-| Web jobs content | |
+* Provide the details for your agent as you configure it:
+    * *Enter server URL*: **https://{youraccount}.visualstudio.com**
+    * *Authentication type*: **PAT**
+    * *Personal access token*: **{Value you saved earlier}**
+    * *Agent pool*: **ASE Internal**
+    * *Agent name*: **{your vm name}-01**
+    * *Work folder*: **{Leave as default}**
+    * *Run agent as a service*: **Y**
+    * *User account for the service*: **{Leave as default}**
 
-Application settings and connection strings can be configured to be sticky between slots. These allow a specific value, e.g. a database connection string, to stay locked to a specific slot which will prevent it being swapped to the wrong environment.
+    ![Configure agent](media/vsts-agent-configure.png)
 
-> **GUIDE** [Set up staging environments in App Services](https://docs.microsoft.com/en-us/azure/app-service/web-sites-staged-publishing)
+* Back in VSTS, check the **ASE Internal** pool and you should see your agent as a green color.
 
-## Diagnostics and Monitoring
+  ![Configured agent](media/vsts-agent-in-pool.png)
 
-### Diagnostics
-App Service provides built-in diagnostics to assist with debugging and troubleshooting.
+#### Setup Build
 
-There are four kinds of logs that can be enabled via the Azure portal.
+* In VSTS, navigate to the **Build and Release** hub of your project. Under **Builds**, create a new definition. Leave the default options and click **Continue**.
 
-* **Web Server Logging**: IIS logs, gives information about HTTP requests and responses using W3C extended log file format.
-* **Detailed Error Logging**: Detailed error information for HTTP status codes that indicate a failure (status code 400 or greater) 
-    * This may contain information that can help determine why the server returned the error code.
-* **Failed Request Tracing**: Detailed information on failed requests, including a trace of the IIS components used to process the request and the time taken in each component. 
-* **Application Logging**: Collects diagnostics traces from web app code.
+  ![Create build definition](media/vsts-create-build.png)
 
-> **NOTES** 
-By default all the loggings are *Off* and can be turned on as needed.
+  ![Create build definition](media/vsts-create-build-2.png)
 
-When the logs are enabled, they can be stored in either the Filesystem on the VM or in a storage account. And FTP client or the Kudu console can be used to access logs stored on the filesytem.
+* In the *Select a template* view, choose **ASP.NET Core (.NET Framework)**, and click **Apply**.
+* Once the build steps are added, click the **Build solution** task, and change the *MSBuild Arguments* to the following:
 
-### Monitoring
+```
+/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactstagingdirectory)\\"
+```
 
-App Services provides built in monitoring functionality via the Azure portal. This includes the ability to review quotas and metrics for an app as well as the App Service plan. In addition, monitoring collects the number of requests to an app, average response time, HTTP server errors, data in & out.
+* In the build phase, add a new **Copy Files** task and place it after the *Build Solution* task.
 
-Application Insights can be used to instrument an app and send telemetry to Azure to analyze how it is being used, the number of users including where they are coming from, what devices they are using, and what features they are using in your app.
+  ![Add copy files](media/vsts-add-copy-files.png)
 
-### Alerts
+* Set the following parameters:
+    * *Display Name*: **Copy Database Files**
+    * *Source Folder*: **Contoso.Expenses.Database**
+    * *Contents*: **\*\*\bin\\$(BuildConfiguration)\\*\***
+    * *Target Folder*: **$(build.artifactstagingdirectory)**
 
-Alerts can also be setup via portal. Metrics for the app or plan can be connected to alerts and to provide email notifications for when they trigger.
+  ![Configure copy files](media/vsts-copy-files.png)
 
-For example alerts can notify when average response time of an app goes above 2 seconds or CPU usage goes above 75% or when server errors start getting triggered.
+* Under **Triggers**, click to **Enable continuous integration** and click **Save and queue**. Wait for the build to complete.
 
-> **GUIDE** [Enable diagnostics logging for apps in App Services](https://docs.microsoft.com/en-us/azure/app-service/troubleshoot-diagnostic-logs)
-> **GUIDE** [Monitor apps in App Services](https://docs.microsoft.com/en-us/Azure/app-service/web-sites-monitor)
+  ![Enable continuous integration](media/vsts-cont-int.png)
 
-## API Apps
+#### Setup Release
 
-There are additional benefits to running API applications in an App Service:
-* **Bring an existing API as-is**: No changes required to the existing API code is needed to take advantage of Azure API Apps features
-* **Simple access control**: Provides built-in authentication services support for Azure Active Directory or social network single sign-on such as Facebook and Twitter again with no code changes required.
-* **From a Swagger metadata perspective**: Integrated Swagger support makes APIs easily consumable by a variety of clients. The API Apps SDK can generate client code for an API in a variety of languages including C#, Java, and JavaScript.
-* **Integration with Logic Apps & API management**: API apps can be easily consumed by Logic Apps or API Management.
+* In VSTS, navigate to *Releases* under the **Build and Release** hub, and click **New definition**.
 
-### Swagger
+  ![Create release definition](media/vsts-create-release.png)
 
-Swagger is a standard, language-agnostic interface to REST APIs which allows both humans and computers to discover and understand the capabilities of the service without access to source code, documentation, or through network traffic inspection.
+* Select **Azure App Service Deployment** and then **Apply**.
 
-For more details: 
-* http://swagger.io/ 
-* http://swagger.io/getting-started-with-swagger-i-what-is-swagger/ 
+  ![Create release definition](media/vsts-create-release-2.png)
 
-The Swagger spec on GitHub contains links to a variety of  third-party projects that help you with Swagger doc generation in different environments. For .NET Framework developers, Swashbuckle is a project for documenting ASP.NET Web API projects with Swagger.
+* Rename the environment to something more descriptive e.g. **Development**.
 
-In simple terms Swashbuckle is a NuGet package to generate Swagger. In addition to its Swagger generator, Swashbuckle also contains an embedded version of swagger-ui which it will automatically serve up once Swashbuckle is installed.
+  ![Rename release environment](media/vsts-release-environment.png)
 
-https://github.com/domaindrivendev/Swashbuckle.AspNetCore
+* In the tasks list for the development environment, click **Run on agent** and change the agent queue to our **ASE Internal** queue.
 
-> **GUIDE** [Host a RESTful API with CORS in App Services](https://docs.microsoft.com/en-us/azure/app-service/app-service-web-tutorial-rest-api)
+  ![Edit release definition](media/vsts-edit-definition.png)
 
-> **GUIDE** [Authentication and authorization in App Services](https://docs.microsoft.com/en-us/azure/app-service/overview-authentication-authorization)
+  ![Select agent pool](media/vsts-select-pool.png)
+
+* At the top of definition, rename the definition from **New Release Definition** to **ContosoExpenses-ASE-CD**.
+
+* Select **Pipeline** and click **Add artifact**. Change the *Source* to the build definition you created in the previous step and then click **Add**.
+
+  ![Add build artifact](media/vsts-add-artifact.png)
+
+  ![Add build artifact](media/vsts-add-artifact-2.png)
+
+* In the artifacts section, click the **Continuous deployment trigger** icon and then toggle the switch to enabled.
+
+  ![Add continuous deployment](media/vsts-enable-cd.png)
+
+* Select **Tasks** and then add a new **Azure SQL Database Deployment** task before the App Service task and make the following changes:
+    * *Display name*: **Deploy SQL Dacpac**
+    * *Azure subscription*: **{Select Manage}**
+        * Click **New Service Endpoint**
+        * Select **Azure Resource Manager**
+        * Provide a value for connection name and select the appropriate subscription
+        * (Optional) Select the resource group the environment is deployed into
+    * *Azure SQL Server Name*: **{FQDN of the SQL Server you created earlier}**
+    * *Database name*: **contosoexpensesdb**
+    * *Server admin login*: **{username to SQL server you created}**
+    * *Password*: **{password to the SQL server you created}**
+    * *DACPAC File*: **{Artifact Path}\bin\Release\Contoso.Expenses.Database.dacpac**
+    > Note: The password here should ideally be protected by at least a secret variable in VSTS or something more secure such as Azure KeyVault.
+
+  ![Add SQL task](media/vsts-add-sql-task.png)
+
+  ![Configure SQL task](media/vsts-add-sql-task-2.png)
+
+  ![Configure SQL task](media/vsts-add-sql-task-3.png)
+
+  ![Configure SQL task](media/vsts-add-sql-task-4.png)
+
+  ![Configure SQL task](media/vsts-add-sql-task-5.png)
+
+* In the Deploy Azure App Service task, make the following changes: 
+    * *Display name*: **Deploy Contoso Expenses API**
+    * *Azure subscription*: **{Connect to the subscription you just created}**
+    * *App type*: **API App**
+    * *App Service name*: **expenseapi**
+    * *Package or folder*: **{Artifact Path}\Contoso.Expenses.API.zip**
+ 
+    Under *Additional Deployment Options* set the following values:
+    * *Take app offline*
+    * *Publish using Web Deploy*
+    * *Additional arguments*: **-allowUntrusted**
+
+  ![Configure API Task](media/vsts-release-api.png)
+
+* Right click the *Deploy Contoso Expenses API* task and select **Clone task**.
+
+  ![Clone task](media/vsts-clone-task.png)
+
+* Make the following changes:
+    * *Display name*: **Deploy Contoso Expenses Web**
+    * *Azure subscription*: **{Connect to the subscription you just created}**
+    * *App type*: **Web App**
+    * *App Service name*: **expenseweb**
+    * *Package or folder*: **{Artifact Path}\Contoso.Expenses.Web.zip**
+  
+  ![Configure Web Task](media/vsts-release-web.png)
+
+* Click **Save** and then **Ok**.
+* Click **Release** and then **Create release** to start a new release deployment.
+* Once the release has completed, return to your VM and open https://expenseweb.internal.contoso.com/
+
+  ![Application deployed](media/vsts-release-complete.png)
