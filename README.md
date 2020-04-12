@@ -13,6 +13,6 @@
    * [POC Scenario: Containerize a NodeJS Application](articles/containers/node-todo.md)
 
 * Create CI/CD pipelines for containerized Applications
-   * [POC Scenario: Modernize .NET Core Application, Build Azure DevOps pipelines, Deploy to AKS Linux Cluster](articles/containers/containerize-ecommerce-app.md)
+   * [POC Scenario: Modernize .NET Core Application, Build Azure DevOps pipelines, Deploy to AKS Linux Cluster](articles/containers/container-ecommerce-app.md)
    * [POC Scenario: CI/CD of Node.js with Jenkins Server](articles/containers/deploy-container-on-jenkins.md)
 
