@@ -17,4 +17,4 @@
    * [POC Scenario: CI/CD of Node.js with Jenkins Server](articles/containers/deploy-container-on-jenkins.md)
 
 * Create an Azure Function hosted on App Services Plan
-   * * [POC Scenario: Assign Dedicated Static Outbound IP](articles/containers/function-appservice-static-ip.md)
+   * * [POC Scenario: Assign Dedicated Static Outbound IP](articles/functions/function-appservice-static-ip.md)
