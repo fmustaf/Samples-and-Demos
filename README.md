@@ -16,3 +16,5 @@
    * [POC Scenario: Modernize .NET Core Application, Build Azure DevOps pipelines, Deploy to AKS Linux Cluster](articles/containers/container-ecommerce-app.md)
    * [POC Scenario: CI/CD of Node.js with Jenkins Server](articles/containers/deploy-container-on-jenkins.md)
 
+* Create an Azure Function hosted on App Services Plan
+   * * [POC Scenario: Assign Dedicated Static Outbound IP](articles/containers/function-appservice-static-ip.md)
