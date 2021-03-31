@@ -14,7 +14,7 @@ that can be shared with them for them to whitelist.
 
 This pattern created below solves for this use case.
 
-![Screenshot](media/app-service-function-apps/function-app-vnet-integration-dmz-reference-architectures.png)
+![Screenshot](media/function-app-vnet-integration-dmz-reference-architectures.png)
 
 ## Create an HTTP Trigger Function
 - Create an HTTP Triggger C# function with a nmae of your liking.
@@ -112,15 +112,15 @@ log.LogInformation("Exception = {0}", ex.Message);
 ## Configure Function's Application Setting
 - Create a Config Variable **WEBSITE_VNET_ROUTE_ALL** in Application settings for the function and set the value to **1**.
 
-![Screenshot](media/app-service-function-apps/Set-website-vnet-route-all-to-1-function-app-configuration.png)
+![Screenshot](media/Set-website-vnet-route-all-to-1-function-app-configuration.png)
 
 ## Create a VNET and required subnets
 
-![Screenshot](media/app-service-function-apps/VNET-with-AzureFirewallSubnet.png)
+![Screenshot](media/VNET-with-AzureFirewallSubnet.png)
 
-![Screenshot](media/app-service-function-apps/Subnet-for-VNET-integration-resized.png)
+![Screenshot](media/Subnet-for-VNET-integration-resized.png)
 
-![Screenshot](media/app-service-function-apps/VNET-integrationsubnet-delegate-subnet-to-server-farmpng-resized.png)
+![Screenshot](media/VNET-integrationsubnet-delegate-subnet-to-server-farmpng-resized.png)
 
 - Ensure a subnet **AzureFirewallSubnet** is created, dedicated for the Azure Firewall.
 - In the subnet for VNET integratin, set the **Delegate subnet to a service** to **Microsoft.Web/serverFarms**
@@ -129,21 +129,21 @@ log.LogInformation("Exception = {0}", ex.Message);
 
 - Create an out of the box NSG rule and associate that to the VNET Integration Subnet
 
-![Screenshot](media/app-service-function-apps/InboundNSG-resized.png)
-![Screenshot](media/app-service-function-apps/OutboundNSG-resized.png)
+![Screenshot](media/InboundNSG-resized.png)
+![Screenshot](media/OutboundNSG-resized.png)
 
 ## Create an Azure Firewall
 - Using the **AzureFirewallSubnet** subnet, create an Azure Firewall. Once provisioned, note down the **Firewall private IP**
 
-![Screenshot](media/app-service-function-apps/Create-AzureFirewall-resized.png)
+![Screenshot](media/Create-AzureFirewall-resized.png)
 
 - Click on the public IP name listed under **Firewall public IP** and note down the **Firewall public IP**, in this case **52.252.28.12**. The name is provided during Azure Firewall creation. 
 
-![Screenshot](media/app-service-function-apps/Azurefirewall-public-ip-configuration-resized.png)
+![Screenshot](media/Azurefirewall-public-ip-configuration-resized.png)
 
 - Click on Rules under Settings for the Firewall. Navigate to Application Rules and create an application rule collection as below. **Note:** to test the scenario, rule Action will be set to **Deny** or **Allow**. 
 
-![Screenshot](media/app-service-function-apps/Edit-Firewall-Rule-Deny-resized.png)
+![Screenshot](media/Edit-Firewall-Rule-Deny-resized.png)
 
 - Set the values as shown above
    - Set the target FQDN to **api.github.com**
@@ -152,11 +152,11 @@ log.LogInformation("Exception = {0}", ex.Message);
 
 ## Create Route Table
 
-![Screenshot](media/app-service-function-apps/Create-route-table-resized.png)
+![Screenshot](media/Create-route-table-resized.png)
 
 - Create a route such that the next hop is for the **private IP** of the virtual appliacnce, in this case the private IP of the Azure Firewall
 
-![Screenshot](media/app-service-function-apps/Set-route-for-route-table-resized.png)
+![Screenshot](media/Set-route-for-route-table-resized.png)
 
 ## Test the scenario
 - Set the application rule to Deny, and run the Azure Function. You will see the Function will respond with an error in the output window. This is because the Firewall is blocking the traffic via the outbound public static IP.
