@@ -19,5 +19,5 @@
 * Create an Azure Function hosted on App Services Plan
    * [POC Scenario: Assign Dedicated Static Outbound IP](articles/functions/function-appservice-static-ip.md)
 
-* Create Razor App in .NET Core 5.0
+* Create a Razor App in .NET Core 5.0
    * [Razor Movies Web Application](https://github.com/fmustaf/RazorPagesApp/tree/master)
