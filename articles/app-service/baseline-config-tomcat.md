@@ -1,6 +1,6 @@
 ## Tomcat Baseline Configuration On App Services
 
-As you Provision an App Service with Tomcat to host your Java workload (an WAR file or a JAR file), there are certain settings that you get out of the box for Tomcat configuration. You can refer to the [Official Apcache Tomcat Documentation](https://docs.microsoft.com/azure/app-service/overview) for detailed infoirmation, including the default configuration for Tomcat Web Server.
+As you provision an App Service with Tomcat to host your Java workload (an WAR file or a JAR file), there are certain settings that you get out of the box for Tomcat configuration. You can refer to the [Official Apcache Tomcat Documentation](https://tomcat.apache.org/) for detailed infoirmation, including the default configuration for Tomcat Web Server.
 
 Additionally, there are certain transformationss that are further applied on top of the server.xml for Tomcat distribution upon start.
 
