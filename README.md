@@ -21,6 +21,12 @@
  
 * Azure Container Deployment Guidance
    * [POC Scenario: Container Hosting Options on Azure](articles/containers/azure-container-deployment-options.md)
+ 
+* Azure Container Apps and KEDA
+   * [POC Scenario: Scale Azure Container Apps using KEDA Integration](articles/containers/scale-azure-container=apps-keda.md)
+ 
+* Networking in APIM (Azure API Management)
+   * [Choosing the right Azure API Management tier for your networking scenarios](https://techcommunity.microsoft.com/blog/integrationsonazureblog/choosing-the-right-azure-api-management-tier-for-your-networking-scenarios/4104621)
 
 * Create a Razor App in .NET Core 5.0
    * [Razor Movies Web Application](https://github.com/fmustaf/RazorPagesApp/tree/master)
