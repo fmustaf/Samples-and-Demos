@@ -218,16 +218,16 @@ az deployment group create --resource-group "$RESOURCE_GROUP" \
 
 Once deployed, the queue reader app is now created.
 
-![Deployed QueueReader Container.png](images/scale-azure-container-apps-keda/01-deployed-queue-reader-container.png)
+![Deployed QueueReader Container.png](media/containers/Deployed QueueReader Container.png)
 
-![Deployed QueueReader Container with scale.png](images/scale-azure-container-apps-keda/02-deployed-queue-reader-container-with-scale.png)
+![Deployed QueueReader Container with scale.png](media/containers/Deployed QueueReader Container with scale.png)
 
 From the metrics screen, select Replica Count and the initial Replica Count is 1.
 
-![Replica Count at One.png](images/scale-azure-container-apps-keda/03-replica-count-at-one.png)
+![Replica Count at One.png](media/containers/Replica Count at One.png)
 
 Now run the C# console application and let the messages be populated in the queue. The queue reader container is quite fast in processing the messages. You can view the messages in the queue from the Azure Portal. Allow a few minutes for telemetry to update, you will see the Replica Count increase to support the background processing of the messages, in this case the max is set to 10. The queue reader application reads and deletes the messages from the storage queue that you created.
 
-![Replica Count Increased.png](images/scale-azure-container-apps-keda/04-replica-count-increased.png)
+![Replica Count Increased.png](media/containers/Replica Count Increased.png)
 
 Once all messages in the queue are processed, there is a cooling off period, and the replicas will eventually go back to 1.
